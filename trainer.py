@@ -1,5 +1,5 @@
 import agentos
 
 
-class Trainer(agentos.Trainer):
+class R2D2Trainer(agentos.Trainer):
     pass
