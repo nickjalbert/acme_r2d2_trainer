@@ -12,63 +12,65 @@ class R2D2Trainer(agentos.Trainer):
     @classmethod
     def ready_to_initialize(cls, shared_data):
         return (
-                'environment_spec' in shared_data and
-                'network' in shared_data and
-                'dataset_address' in shared_data and
-                'dataset' in shared_data and
-                'store_lstm_state' in shared_data and
-                'burn_in_length' in shared_data and
-                'sequence_length' in shared_data and
-                'trace_length' in shared_data and
-                'replay_period' in shared_data and
-                'batch_size' in shared_data and
-                'max_replay_size' in shared_data
-                )
+            "environment_spec" in shared_data
+            and "network" in shared_data
+            and "dataset_address" in shared_data
+            and "dataset" in shared_data
+            and "store_lstm_state" in shared_data
+            and "burn_in_length" in shared_data
+            and "sequence_length" in shared_data
+            and "trace_length" in shared_data
+            and "replay_period" in shared_data
+            and "batch_size" in shared_data
+            and "max_replay_size" in shared_data
+        )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.shared_data['counter'] = None
-        self.shared_data['discount'] = np.float32(0.99)
-        self.shared_data['target_update_period'] = 25
-        self.shared_data['importance_sampling_exponent'] = 0.2
-        self.shared_data['learning_rate'] = 1e-3
-        self.shared_data['max_priority_weight'] = 0.9
-        self.shared_data['samples_per_insert'] = 32.0
-        self.shared_data['min_replay_size'] = 50
+        self.shared_data["counter"] = None
+        self.shared_data["discount"] = np.float32(0.99)
+        self.shared_data["target_update_period"] = 25
+        self.shared_data["importance_sampling_exponent"] = 0.2
+        self.shared_data["learning_rate"] = 1e-3
+        self.shared_data["max_priority_weight"] = 0.9
+        self.shared_data["samples_per_insert"] = 32.0
+        self.shared_data["min_replay_size"] = 50
 
         logger = loggers.TerminalLogger(label="agent", time_delta=10.0)
-        target_network = copy.deepcopy(self.shared_data['network'])
+        target_network = copy.deepcopy(self.shared_data["network"])
         tf2_utils.create_variables(
-            target_network, [self.shared_data['environment_spec'].observations]
-        ) 
+            target_network, [self.shared_data["environment_spec"].observations]
+        )
         learner_kwarg_names = [
-                'network',
-                'environment_spec',
-                'burn_in_length',
-                'sequence_length',
-                'counter',
-                'discount',
-                'target_update_period',
-                'importance_sampling_exponent',
-                'max_replay_size',
-                'learning_rate',
-                'store_lstm_state',
-                'max_priority_weight',
+            "network",
+            "environment_spec",
+            "burn_in_length",
+            "sequence_length",
+            "counter",
+            "discount",
+            "target_update_period",
+            "importance_sampling_exponent",
+            "max_replay_size",
+            "learning_rate",
+            "store_lstm_state",
+            "max_priority_weight",
         ]
-        learner_kwargs = {k:v for k,v in self.shared_data.items() if k in learner_kwarg_names}
+        learner_kwargs = {
+            k: v
+            for k, v in self.shared_data.items()
+            if k in learner_kwarg_names
+        }
         for name in learner_kwarg_names:
             if name not in learner_kwargs:
-                raise Exception(f'{name} not found in learner_kwargs')
+                raise Exception(f"{name} not found in learner_kwargs")
         # TODO does learner need dataset address and dataset?
         self.learner = learning.R2D2Learner(
             target_network=target_network,
-            dataset=self.shared_data['dataset'],
-            reverb_client=reverb.TFClient(self.shared_data['dataset_address']), 
+            dataset=self.shared_data["dataset"],
+            reverb_client=reverb.TFClient(self.shared_data["dataset_address"]),
             logger=logger,
             **learner_kwargs,
         )
-
-
 
     def improve(self, dataset, policy):
 
@@ -78,14 +80,16 @@ class R2D2Trainer(agentos.Trainer):
         #   * acme/agents/agent.py
         #   * acme/agents/tf/r2d2/agent.py
         # ======================
-        replay_period = self.shared_data['replay_period']
-        batch_size = self.shared_data['batch_size']
-        min_replay_size = self.shared_data['min_replay_size']
-        samples_per_insert = self.shared_data['samples_per_insert']
+        replay_period = self.shared_data["replay_period"]
+        batch_size = self.shared_data["batch_size"]
+        min_replay_size = self.shared_data["min_replay_size"]
+        samples_per_insert = self.shared_data["samples_per_insert"]
 
-        observations_per_step = float(replay_period * batch_size) / samples_per_insert
+        observations_per_step = (
+            float(replay_period * batch_size) / samples_per_insert
+        )
         min_observations = replay_period * max(batch_size, min_replay_size)
-        num_observations = self.shared_data['num_observations']
+        num_observations = self.shared_data["num_observations"]
 
         num_steps = 0
         n = num_observations - min_observations
@@ -109,4 +113,4 @@ class R2D2Trainer(agentos.Trainer):
             # self.actor.update()
             pass
 
-        agentos.save_tensorflow("network", self.shared_data['network'])
+        agentos.save_tensorflow("network", self.shared_data["network"])
