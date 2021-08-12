@@ -1,6 +1,7 @@
 # TODO - update requirements.txt
 from acme.agents.tf.r2d2 import learning
 import agentos
+from agentos import global_settings
 from acme.tf import utils as tf2_utils
 from acme.utils import loggers
 import numpy as np
@@ -16,60 +17,35 @@ class R2D2Trainer(agentos.Trainer):
             and "network" in shared_data
             and "dataset_address" in shared_data
             and "dataset" in shared_data
-            and "store_lstm_state" in shared_data
-            and "burn_in_length" in shared_data
-            and "sequence_length" in shared_data
-            and "trace_length" in shared_data
-            and "replay_period" in shared_data
-            and "batch_size" in shared_data
-            and "max_replay_size" in shared_data
         )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.shared_data["counter"] = None
-        self.shared_data["discount"] = np.float32(0.99)
-        self.shared_data["target_update_period"] = 25
-        self.shared_data["importance_sampling_exponent"] = 0.2
-        self.shared_data["learning_rate"] = 1e-3
-        self.shared_data["max_priority_weight"] = 0.9
-        self.shared_data["samples_per_insert"] = 32.0
-        self.shared_data["min_replay_size"] = 50
 
         logger = loggers.TerminalLogger(label="agent", time_delta=10.0)
         target_network = copy.deepcopy(self.shared_data["network"])
         tf2_utils.create_variables(
             target_network, [self.shared_data["environment_spec"].observations]
         )
-        learner_kwarg_names = [
-            "network",
-            "environment_spec",
-            "burn_in_length",
-            "sequence_length",
-            "counter",
-            "discount",
-            "target_update_period",
-            "importance_sampling_exponent",
-            "max_replay_size",
-            "learning_rate",
-            "store_lstm_state",
-            "max_priority_weight",
-        ]
-        learner_kwargs = {
-            k: v
-            for k, v in self.shared_data.items()
-            if k in learner_kwarg_names
-        }
-        for name in learner_kwarg_names:
-            if name not in learner_kwargs:
-                raise Exception(f"{name} not found in learner_kwargs")
+        i_s_exponent = global_settings.importance_sampling_exponent
         # TODO does learner need dataset address and dataset?
         self.learner = learning.R2D2Learner(
+            network=self.shared_data["network"],
+            environment_spec=self.shared_data["environment_spec"],
             target_network=target_network,
             dataset=self.shared_data["dataset"],
             reverb_client=reverb.TFClient(self.shared_data["dataset_address"]),
             logger=logger,
-            **learner_kwargs,
+            burn_in_length=global_settings.burn_in_length,
+            sequence_length=global_settings.sequence_length,
+            counter=global_settings.counter,
+            discount=np.float32(global_settings.discount),
+            target_update_period=global_settings.target_update_period,
+            importance_sampling_exponent=i_s_exponent,
+            max_replay_size=global_settings.max_replay_size,
+            learning_rate=global_settings.learning_rate,
+            store_lstm_state=global_settings.store_lstm_state,
+            max_priority_weight=global_settings.max_priority_weight,
         )
 
     def improve(self, dataset, policy):
@@ -80,15 +56,13 @@ class R2D2Trainer(agentos.Trainer):
         #   * acme/agents/agent.py
         #   * acme/agents/tf/r2d2/agent.py
         # ======================
-        replay_period = self.shared_data["replay_period"]
-        batch_size = self.shared_data["batch_size"]
-        min_replay_size = self.shared_data["min_replay_size"]
-        samples_per_insert = self.shared_data["samples_per_insert"]
-
         observations_per_step = (
-            float(replay_period * batch_size) / samples_per_insert
+            float(global_settings.replay_period * global_settings.batch_size)
+            / global_settings.samples_per_insert
         )
-        min_observations = replay_period * max(batch_size, min_replay_size)
+        min_observations = global_settings.replay_period * max(
+            global_settings.batch_size, global_settings.min_replay_size
+        )
         num_observations = self.shared_data["num_observations"]
 
         num_steps = 0
