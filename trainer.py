@@ -1,7 +1,7 @@
 # TODO - update requirements.txt
 from acme.agents.tf.r2d2 import learning
 import agentos
-from agentos import global_settings
+from agentos import parameters
 from acme.tf import utils as tf2_utils
 from acme.utils import loggers
 import numpy as np
@@ -27,7 +27,7 @@ class R2D2Trainer(agentos.Trainer):
         tf2_utils.create_variables(
             target_network, [self.shared_data["environment_spec"].observations]
         )
-        i_s_exponent = global_settings.importance_sampling_exponent
+        i_s_exponent = parameters.importance_sampling_exponent
         # TODO does learner need dataset address and dataset?
         self.learner = learning.R2D2Learner(
             network=self.shared_data["network"],
@@ -36,16 +36,16 @@ class R2D2Trainer(agentos.Trainer):
             dataset=self.shared_data["dataset"],
             reverb_client=reverb.TFClient(self.shared_data["dataset_address"]),
             logger=logger,
-            burn_in_length=global_settings.burn_in_length,
-            sequence_length=global_settings.sequence_length,
-            counter=global_settings.counter,
-            discount=np.float32(global_settings.discount),
-            target_update_period=global_settings.target_update_period,
+            burn_in_length=parameters.burn_in_length,
+            sequence_length=parameters.sequence_length,
+            counter=parameters.counter,
+            discount=np.float32(parameters.discount),
+            target_update_period=parameters.target_update_period,
             importance_sampling_exponent=i_s_exponent,
-            max_replay_size=global_settings.max_replay_size,
-            learning_rate=global_settings.learning_rate,
-            store_lstm_state=global_settings.store_lstm_state,
-            max_priority_weight=global_settings.max_priority_weight,
+            max_replay_size=parameters.max_replay_size,
+            learning_rate=parameters.learning_rate,
+            store_lstm_state=parameters.store_lstm_state,
+            max_priority_weight=parameters.max_priority_weight,
         )
 
     def improve(self, dataset, policy):
@@ -57,11 +57,11 @@ class R2D2Trainer(agentos.Trainer):
         #   * acme/agents/tf/r2d2/agent.py
         # ======================
         observations_per_step = (
-            float(global_settings.replay_period * global_settings.batch_size)
-            / global_settings.samples_per_insert
+            float(parameters.replay_period * parameters.batch_size)
+            / parameters.samples_per_insert
         )
-        min_observations = global_settings.replay_period * max(
-            global_settings.batch_size, global_settings.min_replay_size
+        min_observations = parameters.replay_period * max(
+            parameters.batch_size, parameters.min_replay_size
         )
         num_observations = self.shared_data["num_observations"]
 
