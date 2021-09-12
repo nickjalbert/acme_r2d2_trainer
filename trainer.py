@@ -197,3 +197,11 @@ class R2D2Trainer(agentos.Trainer):
             # Always return 1/obs_per_step batches every observation.
             num_steps = int(1 / observations_per_step)
         return num_steps
+
+
+def run_tests():
+    pass
+
+
+if __name__ == "__main__":
+    run_tests()
